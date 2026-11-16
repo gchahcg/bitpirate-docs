@@ -218,6 +218,9 @@
   .badge.post { color: var(--accent); border-color: var(--accent); background: var(--accent-wash); }
   .badge.delete { color: var(--danger); border-color: var(--danger); background: var(--danger-wash); }
   .badge.ws { color: var(--warn); border-color: var(--warn); background: var(--warn-wash); }
+  .badge.k-transactional { color: var(--accent); border-color: var(--accent); background: var(--accent-wash); }
+  .badge.k-streaming { color: var(--warn); border-color: var(--warn); background: var(--warn-wash); }
+  .badge.k-interactive { color: var(--fg-muted); border-color: var(--border); background: var(--surface-2); }
   .tier-badge { display: inline-flex; align-items: center; gap: 5px; font-family: "IBM Plex Mono", monospace; font-size: 11px; }
   .tier-dot { width: 7px; height: 7px; border-radius: 50%; }
   .tier-dot.read-only { background: var(--good); }
@@ -229,6 +232,31 @@
   .mode-card { border: 1px solid var(--border); border-radius: var(--radius); padding: 12px 14px; background: var(--surface); }
   .mode-card .m-name { font-family: "IBM Plex Mono", monospace; font-size: 13px; font-weight: 600; color: var(--accent); }
   .mode-card .m-count { font-size: 11.5px; color: var(--fg-muted); margin-top: 3px; }
+
+  /* -- mode chips + command detail table ------------------------------- */
+  .mode-chip-row { display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0 24px; }
+  .mode-chip {
+    font-family: "IBM Plex Mono", monospace; font-size: 12px; padding: 6px 11px;
+    border: 1px solid var(--border); border-radius: 100px; background: var(--surface);
+    color: var(--fg-muted); cursor: pointer; white-space: nowrap; line-height: 1.3;
+  }
+  .mode-chip:hover { border-color: var(--accent); color: var(--fg); }
+  .mode-chip.active { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); font-weight: 600; }
+  .mode-chip .chip-n { opacity: .65; margin-left: 4px; }
+  .mode-chip.active .chip-n { opacity: .85; }
+
+  #modeDetail { margin-bottom: 30px; }
+  .mode-detail-head { display: flex; align-items: baseline; justify-content: space-between; gap: 14px; margin: 18px 0 2px; flex-wrap: wrap; }
+  .mode-detail-head h4 { font-size: 16px; font-family: "IBM Plex Mono", monospace; color: var(--accent); }
+  #cmdFilter {
+    font-family: "IBM Plex Mono", monospace; font-size: 12.5px; background: var(--surface);
+    border: 1px solid var(--border); border-radius: 6px; padding: 6px 10px; color: var(--fg);
+    width: 200px;
+  }
+  #cmdFilter:focus { outline: none; border-color: var(--accent); }
+  .cmd-name-cell { font-weight: 600; color: var(--fg); }
+  .cmd-desc-alias { color: var(--fg-faint); font-style: italic; }
+  .raw-instruction-note { font-size: 12px; color: var(--accent); margin: 10px 0 0; font-family: "IBM Plex Mono", monospace; }
 
   .primitive-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin: 18px 0 10px; }
   .primitive-card { border: 1px solid var(--border); border-radius: var(--radius); padding: 18px; background: var(--surface); }
@@ -262,6 +290,7 @@
     .scrim.show { display: block; }
     .page { padding: 70px 18px 70px; }
     h1.hero-title { font-size: 28px; }
+    #cmdFilter { width: 100%; }
   }
 </style>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap">
@@ -709,13 +738,31 @@ closed</pre>
         <h2 class="section-title" style="font-size:30px;">Mode spec</h2>
         <p class="section-lede">Generated from firmware source pinned at the <code>v1.8</code> tag &mdash; not hand-maintained. Each command is classified by kind (transactional / streaming / interactive) and tier, plus whether the mode accepts raw bracket instruction syntax like <code>[0x9F r:3]</code>, a second grammar the normal command scrape alone would miss.</p>
 
-        <div class="stat-row" style="grid-template-columns:repeat(3,1fr);">
+        <div class="stat-row" style="grid-template-columns:repeat(4,1fr);">
           <div class="stat"><span class="stat-num">135</span><span class="stat-label">transactional</span></div>
           <div class="stat"><span class="stat-num">76</span><span class="stat-label">streaming</span></div>
           <div class="stat"><span class="stat-num">52</span><span class="stat-label">interactive</span></div>
+          <div class="stat"><span class="stat-num">236<span style="font-size:14px;color:var(--fg-faint);">/263</span></span><span class="stat-label">have a firmware description</span></div>
         </div>
 
-        <div class="card-grid" id="modeGrid"></div>
+        <p class="muted" style="margin-top:-6px;">Descriptions below come from the firmware's own <code>HelpShell.cpp</code> &mdash; the same hardcoded text its <code>help</code> command prints &mdash; not written for this page. A command with no description either shares a handler with one that has one (shown as <em>alias</em>) or genuinely isn't documented in the firmware's own help text; neither case is guessed at.</p>
+
+        <h3 style="margin-top:28px;">Pick a mode</h3>
+        <div class="mode-chip-row" id="modeChips"></div>
+
+        <div id="modeDetail">
+          <div class="mode-detail-head">
+            <h4 id="modeDetailTitle" style="margin:0;">&nbsp;</h4>
+            <input type="text" id="cmdFilter" placeholder="filter commands&hellip;" autocomplete="off">
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th style="width:120px;">Command</th><th>Description</th><th style="width:110px;">Kind</th><th style="width:140px;">Tier</th></tr></thead>
+              <tbody id="cmdTableBody"></tbody>
+            </table>
+          </div>
+          <p class="muted" id="cmdEmptyState" style="display:none;">No commands match that filter.</p>
+        </div>
 
         <h3>Regenerating after a firmware update</h3>
         <pre>.venv/bin/python tools/gen_modes_spec.py --ref v1.9   <span class="c"># or whatever tag</span></pre>
@@ -868,20 +915,80 @@ closed</pre>
   try { savedTheme = localStorage.getItem("bitpirate_docs_theme") || "system"; } catch (e) {}
   applyTheme(savedTheme);
 
-  // -- mode grid, filled from the generated spec's live numbers ------------
-  var MODES = [
-    ["I2C",21],["UART",20],["WIFI",25],["LORA",21],["SUBGHZ",17],["DIO",16],
-    ["ETHERNET",13],["CELL",11],["LED",11],["USB",11],["INFRARED",10],
-    ["1WIRE",9],["RF24",9],["BLUETOOTH",9],["SPI",7],["FM",6],["I2S",5],
-    ["RFID",5],["CAN",5],["HDUART",2],["3WIRE",2],["2WIRE",3],["JTAG",3],
-    ["EXPANDER",0],["GENERAL",22]
-  ];
-  var grid = document.getElementById("modeGrid");
-  MODES.sort(function (a, b) { return b[1] - a[1]; }).forEach(function (m) {
-    var card = document.createElement("div");
-    card.className = "mode-card";
-    card.innerHTML = '<div class="m-name">' + m[0] + '</div><div class="m-count">' + m[1] + ' command' + (m[1] === 1 ? '' : 's') + '</div>';
-    grid.appendChild(card);
+  // -- mode chips + command detail table, from the generated spec --------
+  var MODE_DATA = {"BLUETOOTH":{"raw":false,"cmds":[["scan","transactional","read-only","Discover devices"],["pair","transactional","allowed","Pair with a device"],["spoof","transactional","approval-required","Spoof mac address"],["sniff","streaming","read-only","Sniff Bluetooth data"],["status","transactional","read-only","Show current status"],["server","transactional","allowed","Create an HID server"],["keyboard","transactional","allowed","Start keyboard bridge"],["mouse","interactive","allowed","Random mouse moves"],["reset","transactional","allowed","Reset interface"]]},"CAN":{"raw":false,"cmds":[["sniff","streaming","read-only","Print all received frames"],["send","interactive","allowed","Send frame with given ID"],["receive","streaming","allowed","Capture frames with ID"],["status","transactional","read-only","State of the CAN controller"],["config","transactional","allowed","Configure MCP2515 settings"]]},"CELL":{"raw":false,"cmds":[["config","transactional","allowed","Configure modem settings"],["modem","transactional","allowed","Show modem info"],["network","transactional","allowed","Show network info"],["operator","transactional","allowed","Show available operators"],["sim","transactional","allowed","Show SIM card info"],["unlock","transactional","allowed","Unlock SIM with PIN"],["phonebook","transactional","allowed","Show SIM phonebook"],["setmode","interactive","allowed","Set modem mode"],["sms","interactive","allowed","SMS operations"],["ussd","interactive","allowed","Send USSD code"],["call","interactive","allowed","Call operations"]]},"DIO":{"raw":false,"cmds":[["sniff","streaming","read-only","Track toggle states"],["monitor","streaming","read-only","Track toggle states (alias)"],["read","transactional","read-only","Get pin state"],["set","transactional","allowed","Set pin state"],["scan","streaming","read-only","Detect pins activity"],["pins","transactional","read-only","Show pins state"],["status","transactional","read-only","Show pins state (alias)"],["pullup","transactional","allowed","Set pin pullup"],["pulldown","transactional","allowed","Set pin pulldown"],["pwm","transactional","allowed",""],["toggle","streaming","allowed","Toggle pin periodically"],["pulse","transactional","allowed","Send pulse on pin"],["measure","transactional","read-only","Calculate frequency"],["servo","transactional","allowed","Set servo angle"],["jam","streaming","approval-required","Random high/low states"],["reset","transactional","allowed","Reset to default"]]},"ETHERNET":{"raw":false,"cmds":[["config","interactive","allowed","Configure W5500 settings"],["connect","transactional","allowed","Connect using DHCP"],["nc","transactional","allowed","Open netcat session"],["nmap","transactional","allowed",""],["discovery","transactional","read-only","Discover network devices"],["ping","transactional","read-only","Ping a remote host"],["ssh","transactional","allowed",""],["telnet","transactional","allowed",""],["modbus","transactional","allowed",""],["http","transactional","allowed","Get analysis report"],["lookup","transactional","allowed",""],["status","transactional","read-only","Show ETH status"],["reset","transactional","allowed","Reset interface"]]},"EXPANDER":{"raw":false,"cmds":[]},"FM":{"raw":false,"cmds":[["config","transactional","allowed","Configure Si4713 settings"],["sweep","streaming","read-only","Analyze frequencies"],["trace","streaming","read-only","Observe frequency signal"],["waterfall","streaming","allowed","Show frequency peaks"],["broadcast","interactive","allowed","Create FM station"],["reset","transactional","allowed","Reset via pin"]]},"HDUART":{"raw":true,"cmds":[["bridge","interactive","allowed","Half-duplex I/O"],["config","transactional","allowed","Configure settings"]]},"I2C":{"raw":true,"cmds":[["scan","streaming","read-only","Find devices"],["discovery","streaming","read-only","Report on devices"],["sniff","streaming","read-only","View/filter traffic"],["freq","streaming","allowed","Measure SCL clock"],["ping","transactional","read-only","Check ACK"],["identify","transactional","read-only","Identify device"],["write","transactional","allowed","Write register"],["read","transactional","read-only","Read register"],["dump","streaming","read-only","Read all registers"],["regs","streaming","read-only","Probe register R/W"],["slave","streaming","allowed","Emulate I2C device"],["glitch","transactional","approval-required","Run attack sequence"],["flood","streaming","approval-required","Saturate target I/O"],["jam","streaming","approval-required","Jam I2C bus with noise"],["eeprom","interactive","allowed","I2C EEPROM operations"],["recover","transactional","allowed","Attempt bus recovery"],["monitor","streaming","read-only","Monitor register changes"],["trace","streaming","read-only",""],["swap","transactional","allowed","Swap SDA and SCL GPIOs"],["health","streaming","read-only","Perform timing test"],["config","transactional","allowed","Configure settings"]]},"I2S":{"raw":false,"cmds":[["config","transactional","allowed","Configure settings"],["play","streaming","allowed","Play sine wave for ms"],["record","streaming","allowed","Read mic continuously"],["test","transactional","allowed","Run basic audio tests"],["reset","transactional","allowed","Reset to default"]]},"INFRARED":{"raw":false,"cmds":[["config","transactional","allowed","Configure settings"],["send","transactional","allowed",""],["receive","streaming","allowed","Receive IR signal"],["devicebgone","streaming","allowed","OFF devices blast"],["remote","interactive","allowed","Universal remote commands"],["replay","transactional","allowed","Replay recorded IR frames"],["record","streaming","allowed","Record IR signals to file"],["load","interactive","allowed","Load .ir files from FS"],["jam","streaming","approval-required","Send random IR signals"],["setprotocol","transactional","allowed","Set IR protocol type"]]},"JTAG":{"raw":false,"cmds":[["scan","transactional","read-only","Scan JTAG pins"],["config","transactional","allowed","Configure settings"],["openocd","transactional","allowed","Reboot into OpenOCD adapter"]]},"LED":{"raw":true,"cmds":[["fill","transactional","allowed","Fill all LEDs with a color"],["set","transactional","allowed","Set specific LED color"],["reset","transactional","allowed","Turn off all LEDs"],["blink","streaming","allowed","Blink all LEDs"],["rainbow","streaming","allowed","Rainbow animation"],["chase","streaming","allowed","Chasing light effect"],["cycle","streaming","allowed","Cycle through colors"],["wave","streaming","allowed","Wave animation"],["config","transactional","allowed","Configure LED settings"],["setprotocol","transactional","allowed","Select LED protocol"],["scan","transactional","read-only","Try to detect LEDs type"]]},"LORA":{"raw":false,"cmds":[["config","transactional","allowed","Configure LoRa SX1262"],["send","transactional","allowed","Send text or hex{ AA }"],["tx","transactional","allowed","Send text or hex{ AA } (alias)"],["spam","transactional","approval-required",""],["jam","streaming","approval-required","Lab CW for 1..60 seconds"],["receive","transactional","allowed","Listen for packets"],["sniff","transactional","read-only","Listen for packets (alias)"],["read","transactional","read-only","Listen for packets (alias)"],["record","interactive","allowed","Receive and save packet"],["load","interactive","allowed","Send saved .lora packet"],["rssi","transactional","read-only","Monitor RSSI On channel"],["ear","transactional","allowed","Map RSSI to audio"],["scan","transactional","read-only","Scan and find best frequency"],["waterfall","transactional","allowed","Show frequency activity"],["cad","transactional","read-only","Monitor activity on channel"],["activity","transactional","read-only","Monitor activity on channel (alias)"],["airtime","transactional","read-only","Airtime for 1..255 bytes"],["toa","transactional","read-only","Airtime for 1..255 bytes (alias)"],["setfreq","transactional","allowed","Set operating frequency"],["setfrequency","transactional","allowed","Set operating frequency (alias)"],["status","transactional","read-only","Show profile and counters"]]},"1WIRE":{"raw":true,"cmds":[["scan","transactional","read-only","Scan 1-Wire devices"],["ping","transactional","read-only","Ping 1-Wire device"],["sniff","streaming","read-only","View 1-Wire traffic"],["read","streaming","read-only","Read ID + SP"],["write","interactive","allowed","Write scratchpad"],["ibutton","interactive","allowed","iButton operations"],["eeprom","interactive","allowed","EEPROM operations"],["temp","transactional","allowed","Read temperature"],["config","transactional","allowed","Configure settings"]]},"RF24":{"raw":false,"cmds":[["help","interactive","allowed",""],["config","transactional","allowed","Configure NRF24 settings"],["send","streaming","allowed","Send a frame payload"],["receive","streaming","allowed","Receive frames"],["scan","streaming","read-only","Search best active channel"],["sweep","streaming","read-only","Analyze channels activity"],["waterfall","streaming","allowed","Show channel peaks"],["jam","streaming","approval-required","Jam selected channels group"],["setchannel","transactional","allowed","Set operating channel"]]},"RFID":{"raw":false,"cmds":[["read","streaming","read-only","Read RFID tag data"],["write","interactive","allowed","Write UID/Block to tag"],["clone","streaming","approval-required","Clone Mifare UID"],["erase","streaming","approval-required","Erase RFID tag"],["config","transactional","allowed","Configure PN532 settings"]]},"SPI":{"raw":true,"cmds":[["sniff","streaming","read-only","View traffic"],["sdcard","interactive","allowed","SD operations"],["slave","streaming","allowed","Emulate SPI slave"],["flash","interactive","allowed","SPI Flash operations"],["eeprom","interactive","allowed","SPI EEPROM operations"],["help","interactive","allowed",""],["config","transactional","allowed","Configure settings"]]},"SUBGHZ":{"raw":false,"cmds":[["scan","interactive","read-only","Search best frequency"],["sweep","streaming","read-only","Analyze frequency band"],["setfrequency","interactive","allowed","Set operating frequency"],["setfreq","interactive","allowed","Set operating frequency (alias)"],["replay","transactional","allowed","Record and replay frames"],["jam","streaming","approval-required","Jam selected frequencies"],["bruteforce","streaming","approval-required","Bruteforce 12 bit keys"],["decode","streaming","read-only",""],["raw","streaming","allowed",""],["receive","transactional","allowed","Receive raw/decoded signals"],["trace","streaming","read-only","Observe RX signal trace"],["waterfall","streaming","allowed","Show frequency peaks"],["ear","streaming","allowed","RSSI to audio mapping"],["record","interactive","allowed","Record frame to .sub file"],["load","interactive","allowed","Load .sub files from FS"],["send","transactional","allowed","Send a frame payload"],["config","transactional","allowed","Configure CC1101 settings"]]},"3WIRE":{"raw":true,"cmds":[["config","transactional","allowed","Configure settings"],["eeprom","interactive","allowed","3WIRE EEPROM operations"]]},"2WIRE":{"raw":true,"cmds":[["config","transactional","allowed","Configure settings"],["sniff","streaming","read-only","View 2WIRE traffic"],["smartcard","interactive","allowed","Smartcard operations"]]},"UART":{"raw":true,"cmds":[["autobaud","streaming","allowed","Detect baud rate on RX"],["scan","streaming","read-only","Scan UART lines activity"],["ping","transactional","read-only","Send and expect reply"],["read","transactional","read-only","Receive ascii data"],["raw","transactional","allowed","Receive raw hex data"],["readraw","transactional","allowed","Receive raw hex data (alias)"],["readhex","transactional","allowed","Receive raw hex data (alias)"],["write","transactional","allowed","Send at current baud"],["bridge","interactive","allowed","Full-duplex mode"],["at","interactive","allowed","AT commands operations"],["emulator","interactive","allowed","Emulate UART device"],["trigger","streaming","allowed","Send response on pattern"],["spam","streaming","approval-required","Write text every ms"],["glitch","transactional","approval-required",""],["xmodem","transactional","allowed",""],["swap","transactional","allowed","Swap RX and TX GPIOs"],["sniff","transactional","read-only","Monitor hex UART traffic"],["snifftxt","streaming","allowed",""],["sniffraw","streaming","allowed",""],["config","transactional","allowed","Configure settings"]]},"USB":{"raw":false,"cmds":[["stick","transactional","allowed","Mount SD as USB (alias)"],["storage","transactional","allowed","Mount SD as USB"],["keyboard","transactional","allowed","Start keyboard bridge"],["mouse","interactive","allowed","Random mouse moves"],["gamepad","interactive","allowed","Gamepad button press"],["sysctrl","interactive","allowed","Hardware control actions"],["host","streaming","allowed","Connect device to ESP32"],["adapter","interactive","allowed","Dedicated USB adapters (alias)"],["adapters","interactive","allowed","Dedicated USB adapters"],["reset","transactional","allowed","Reset interface"],["config","transactional","allowed","Configure settings"]]},"GENERAL":{"raw":false,"cmds":[["help","interactive","allowed","Show this help"],["h","interactive","allowed","Show this help (alias)"],["?","interactive","allowed","Show this help (alias)"],["P","transactional","allowed","Enable pull-up"],["p","transactional","allowed","Disable pull-up"],["logic","streaming","read-only","Logic analyzer"],["analogic","streaming","read-only","Analogic plotter"],["system","interactive","allowed","Show system infos"],["sys","interactive","allowed","Show system infos (alias)"],["guide","interactive","allowed","Show firmware guide (alias)"],["man","interactive","allowed","Show firmware guide"],["wizard","streaming","allowed","GPIO activity analyzer"],["hex","transactional","allowed","Convert dec/hex/bin"],["dec","transactional","allowed","Convert dec/hex/bin (alias)"],["profile","interactive","allowed","Save/load GPIOs config"],["listen","streaming","read-only","GPIO activity to audio"],["delay","streaming","allowed",""],["delayms","streaming","allowed",""],["delayus","streaming","allowed",""],["alias","transactional","allowed","Create shortcut"],["mode","interactive","allowed","Set active mode"],["m","interactive","allowed","Set active mode (alias)"]]},"WIFI":{"raw":false,"cmds":[["connect","interactive","allowed","Connect to a network"],["disconnect","transactional","allowed","Disconnect from Wi-Fi"],["status","transactional","read-only","Show Wi-Fi status"],["ap","transactional","allowed",""],["spam","streaming","approval-required","Spam random beacons"],["spoof","transactional","approval-required","Spoof Station MAC"],["scan","transactional","read-only","List Wi-Fi networks"],["waterfall","streaming","allowed","Show channel activity"],["probe","streaming","read-only","Search for net access"],["ping","transactional","read-only","Ping a remote host"],["sniff","streaming","read-only","Monitor Wi-Fi packets"],["webui","transactional","allowed","Show the web UI IP"],["ssh","transactional","allowed",""],["telnet","transactional","allowed",""],["nc","transactional","allowed","Open netcat session"],["nmap","transactional","allowed",""],["modbus","transactional","allowed",""],["http","transactional","allowed","Get analysis report"],["lookup","transactional","allowed",""],["discovery","transactional","read-only","Discover network devices"],["flood","streaming","approval-required","Flood channel with packets"],["repeater","interactive","allowed","Forward Wi-Fi traffic"],["extender","interactive","allowed","Forward Wi-Fi traffic (alias)"],["reset","transactional","allowed","Reset interface"],["deauth","interactive","approval-required","Deauthenticate hosts"]]}};
+
+  var modeOrder = Object.keys(MODE_DATA).sort(function (a, b) {
+    return MODE_DATA[b].cmds.length - MODE_DATA[a].cmds.length;
   });
+
+  var chipRow = document.getElementById("modeChips");
+  var detailTitle = document.getElementById("modeDetailTitle");
+  var tbody = document.getElementById("cmdTableBody");
+  var emptyState = document.getElementById("cmdEmptyState");
+  var filterInput = document.getElementById("cmdFilter");
+  var currentMode = modeOrder[0];
+
+  function kindBadge(kind) {
+    return '<span class="badge k-' + kind + '">' + kind + '</span>';
+  }
+  function tierBadge(tier) {
+    var cls = tier === "approval-required" ? "approval" : tier;
+    return '<span class="tier-badge"><span class="tier-dot ' + cls + '"></span>' + tier + '</span>';
+  }
+
+  function renderTable() {
+    var mode = MODE_DATA[currentMode];
+    var q = (filterInput.value || "").trim().toLowerCase();
+    var rows = mode.cmds.filter(function (c) {
+      if (!q) return true;
+      return c[0].toLowerCase().indexOf(q) !== -1 || (c[3] || "").toLowerCase().indexOf(q) !== -1;
+    });
+    tbody.innerHTML = rows.map(function (c) {
+      var name = c[0], kind = c[1], tier = c[2], desc = c[3];
+      var descCell = desc
+        ? (desc.indexOf("(alias)") !== -1
+            ? '<span class="cmd-desc-alias">' + desc + '</span>'
+            : desc)
+        : '<span class="cmd-desc-alias">not documented in firmware help text</span>';
+      return '<tr><td class="cmd-name-cell"><code>' + name + '</code></td><td>' + descCell + '</td><td>' +
+             kindBadge(kind) + '</td><td>' + tierBadge(tier) + '</td></tr>';
+    }).join("");
+    if (rows.length) {
+      emptyState.style.display = "none";
+    } else {
+      // Distinguish "this mode genuinely has no discrete commands" (e.g.
+      // EXPANDER, which is bridge-only) from "your filter matched
+      // nothing" -- the first isn't a filtering problem and shouldn't be
+      // described as one.
+      emptyState.textContent = mode.cmds.length === 0
+        ? "This mode has no discrete commands — it bridges straight through on entry."
+        : "No commands match that filter.";
+      emptyState.style.display = "block";
+    }
+    document.querySelector("#modeDetail .table-wrap").style.display = rows.length ? "" : "none";
+  }
+
+  function selectMode(name) {
+    currentMode = name;
+    document.querySelectorAll(".mode-chip").forEach(function (chip) {
+      chip.classList.toggle("active", chip.getAttribute("data-mode") === name);
+    });
+    var mode = MODE_DATA[name];
+    detailTitle.textContent = name + (mode.raw ? "  [supports raw instruction syntax]" : "");
+    filterInput.value = "";
+    renderTable();
+  }
+
+  modeOrder.forEach(function (name) {
+    var chip = document.createElement("span");
+    chip.className = "mode-chip";
+    chip.setAttribute("data-mode", name);
+    chip.innerHTML = name + '<span class="chip-n">' + MODE_DATA[name].cmds.length + '</span>';
+    chip.addEventListener("click", function () { selectMode(name); });
+    chipRow.appendChild(chip);
+  });
+  filterInput.addEventListener("input", renderTable);
+  selectMode(currentMode);
 })();
 </script>
