@@ -1,0 +1,887 @@
+<title>Bit Pirate Control Suite</title>
+<style>
+  :root {
+    --bg: #f3f5f6;
+    --surface: #ffffff;
+    --surface-2: #eceff1;
+    --border: #d7dde1;
+    --fg: #121a1f;
+    --fg-muted: #5c6b74;
+    --fg-faint: #889399;
+    --accent: #0f8f7d;
+    --accent-ink: #ffffff;
+    --accent-wash: #e3f4f0;
+    --warn: #a3650a;
+    --warn-wash: #fbf0dd;
+    --danger: #c23f33;
+    --danger-wash: #fbe9e7;
+    --good: #2f8f5b;
+    --good-wash: #e7f5ec;
+    --code-bg: #0e1418;
+    --code-fg: #d8e4e8;
+    --code-muted: #7d8f98;
+    --code-accent: #5fe3cc;
+    --code-string: #e8c07d;
+    --radius: 7px;
+    color-scheme: light;
+  }
+  :root:not([data-theme="light"]) {
+    @media (prefers-color-scheme: dark) {
+      --bg: #0a0e12;
+      --surface: #11171c;
+      --surface-2: #161d23;
+      --border: #263037;
+      --fg: #e7eef1;
+      --fg-muted: #93a3ac;
+      --fg-faint: #5e6d75;
+      --accent: #3ddbc4;
+      --accent-ink: #06211c;
+      --accent-wash: #11302c;
+      --warn: #e8b55f;
+      --warn-wash: #2e2510;
+      --danger: #e8705f;
+      --danger-wash: #2e1512;
+      --good: #6fcf97;
+      --good-wash: #122a1c;
+      --code-bg: #090d10;
+      --code-fg: #dbe6ea;
+      --code-muted: #6c7d86;
+      --code-accent: #5fe3cc;
+      --code-string: #e8c07d;
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #0a0e12;
+    --surface: #11171c;
+    --surface-2: #161d23;
+    --border: #263037;
+    --fg: #e7eef1;
+    --fg-muted: #93a3ac;
+    --fg-faint: #5e6d75;
+    --accent: #3ddbc4;
+    --accent-ink: #06211c;
+    --accent-wash: #11302c;
+    --warn: #e8b55f;
+    --warn-wash: #2e2510;
+    --danger: #e8705f;
+    --danger-wash: #2e1512;
+    --good: #6fcf97;
+    --good-wash: #122a1c;
+    --code-bg: #090d10;
+    --code-fg: #dbe6ea;
+    --code-muted: #6c7d86;
+    --code-accent: #5fe3cc;
+    --code-string: #e8c07d;
+    color-scheme: dark;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--fg);
+    font-family: "IBM Plex Sans", -apple-system, BlinkMacSystemFont, sans-serif;
+    font-size: 15px;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+  h1, h2, h3, h4 { font-family: "IBM Plex Sans", sans-serif; font-weight: 600; text-wrap: balance; letter-spacing: -0.01em; }
+  code, pre, .mono, .stat-num, kbd, .route-path { font-family: "IBM Plex Mono", ui-monospace, monospace; }
+  a { color: var(--accent); }
+  ::selection { background: var(--accent); color: var(--accent-ink); }
+
+  /* -- shell layout -------------------------------------------------- */
+  .shell { display: flex; min-height: 100%; }
+  .sidebar {
+    width: 258px; flex: 0 0 258px;
+    border-right: 1px solid var(--border);
+    background: var(--surface);
+    position: sticky; top: env(safe-area-inset-top, 0px);
+    height: 100vh; overflow-y: auto;
+    padding: 20px 0 32px;
+  }
+  .brand {
+    display: flex; align-items: center; gap: 10px;
+    padding: 2px 20px 18px; margin-bottom: 6px;
+    border-bottom: 1px solid var(--border);
+  }
+  .brand-mark {
+    width: 30px; height: 30px; border-radius: 7px;
+    background: var(--accent); color: var(--accent-ink);
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 700; font-size: 15px; flex: none;
+  }
+  .brand-text { line-height: 1.15; }
+  .brand-text strong { display: block; font-size: 13.5px; font-weight: 600; }
+  .brand-text span { display: block; font-size: 10.5px; color: var(--fg-faint); font-family: "IBM Plex Mono", monospace; letter-spacing: .03em; }
+
+  .nav-group { margin-top: 18px; padding: 0 12px; }
+  .nav-group-label {
+    font-size: 10.5px; text-transform: uppercase; letter-spacing: .08em;
+    color: var(--fg-faint); padding: 0 8px 6px; font-weight: 600;
+  }
+  .nav-link {
+    display: block; padding: 6px 8px; border-radius: 6px;
+    color: var(--fg-muted); font-size: 13px; text-decoration: none;
+    cursor: pointer; border: 1px solid transparent;
+  }
+  .nav-link:hover { background: var(--surface-2); color: var(--fg); }
+  .nav-link.active { background: var(--accent-wash); color: var(--accent); font-weight: 600; }
+
+  .theme-toggle {
+    margin: 18px 12px 0; display: flex; gap: 4px;
+    border: 1px solid var(--border); border-radius: 7px; padding: 3px;
+  }
+  .theme-toggle button {
+    flex: 1; border: none; background: none; color: var(--fg-muted);
+    font-size: 11px; padding: 5px 0; border-radius: 5px; cursor: pointer;
+    font-family: "IBM Plex Mono", monospace;
+  }
+  .theme-toggle button.active { background: var(--surface-2); color: var(--fg); }
+
+  .content { flex: 1; min-width: 0; }
+  .page { max-width: 880px; margin: 0 auto; padding: 56px 40px 100px; }
+  section.view { display: none; }
+  section.view.active { display: block; }
+
+  .menu-btn {
+    display: none; position: fixed; top: calc(14px + env(safe-area-inset-top, 0px)); left: 14px; z-index: 20;
+    background: var(--surface); border: 1px solid var(--border); border-radius: 7px;
+    width: 38px; height: 38px; align-items: center; justify-content: center; cursor: pointer;
+  }
+  .menu-btn span, .menu-btn span::before, .menu-btn span::after {
+    display: block; width: 16px; height: 2px; background: var(--fg); position: relative;
+  }
+  .menu-btn span::before, .menu-btn span::after { content: ""; position: absolute; left: 0; }
+  .menu-btn span::before { top: -5px; } .menu-btn span::after { top: 5px; }
+  .scrim { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.45); z-index: 15; }
+
+  /* -- hero ------------------------------------------------------------ */
+  .eyebrow {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-family: "IBM Plex Mono", monospace; font-size: 11px; letter-spacing: .06em;
+    color: var(--accent); background: var(--accent-wash); border-radius: 100px;
+    padding: 4px 10px 4px 8px; margin-bottom: 16px; text-transform: uppercase;
+  }
+  .eyebrow .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); }
+  h1.hero-title { font-size: 38px; line-height: 1.08; margin: 0 0 14px; }
+  .hero-sub { font-size: 16.5px; color: var(--fg-muted); max-width: 62ch; margin: 0 0 28px; }
+
+  .stat-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px; background: var(--border); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; margin-bottom: 34px; }
+  .stat { background: var(--surface); padding: 16px 16px 14px; }
+  .stat-num { font-size: 24px; font-weight: 600; color: var(--accent); display: block; font-variant-numeric: tabular-nums; }
+  .stat-label { font-size: 11.5px; color: var(--fg-muted); margin-top: 2px; }
+
+  /* -- prose ------------------------------------------------------------ */
+  h2.section-title { font-size: 25px; margin: 0 0 6px; padding-top: 2px; }
+  .section-kicker { font-family: "IBM Plex Mono", monospace; font-size: 11.5px; color: var(--fg-faint); text-transform: uppercase; letter-spacing: .07em; margin: 0 0 8px; }
+  .section-lede { color: var(--fg-muted); font-size: 15px; max-width: 68ch; margin: 0 0 28px; }
+  h3 { font-size: 18px; margin: 34px 0 10px; }
+  h4 { font-size: 14.5px; margin: 22px 0 8px; color: var(--fg); }
+  p { color: var(--fg); max-width: 70ch; }
+  p.muted { color: var(--fg-muted); }
+  .hr { height: 1px; background: var(--border); border: none; margin: 46px 0; }
+
+  code:not(pre code) {
+    background: var(--surface-2); border: 1px solid var(--border); border-radius: 4px;
+    padding: .1em .42em; font-size: .87em; color: var(--accent);
+  }
+  pre {
+    background: var(--code-bg); color: var(--code-fg); border-radius: var(--radius);
+    padding: 14px 16px; overflow-x: auto; font-size: 12.8px; line-height: 1.65;
+    border: 1px solid var(--border); margin: 10px 0 18px;
+  }
+  pre .c { color: var(--code-muted); } /* comment */
+  pre .s { color: var(--code-string); } /* string/path */
+  pre .k { color: var(--code-accent); } /* keyword/command */
+  .pre-label { font-family: "IBM Plex Mono", monospace; font-size: 10.5px; color: var(--fg-faint); text-transform: uppercase; letter-spacing: .06em; margin: 18px 0 -4px; }
+
+  /* -- callouts -------------------------------------------------------- */
+  .callout { border: 1px solid var(--border); border-left: 3px solid var(--accent); border-radius: 0 var(--radius) var(--radius) 0; background: var(--surface); padding: 14px 16px; margin: 18px 0; }
+  .callout p { margin: 0; font-size: 14px; }
+  .callout.warn { border-left-color: var(--warn); }
+  .callout.warn .callout-label { color: var(--warn); }
+  .callout.danger { border-left-color: var(--danger); background: var(--danger-wash); }
+  .callout.danger .callout-label { color: var(--danger); }
+  .callout-label { font-family: "IBM Plex Mono", monospace; font-size: 10.5px; text-transform: uppercase; letter-spacing: .06em; color: var(--accent); display: block; margin-bottom: 6px; font-weight: 600; }
+
+  /* -- tables ------------------------------------------------------------ */
+  .table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: var(--radius); margin: 10px 0 22px; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th { text-align: left; font-size: 10.5px; text-transform: uppercase; letter-spacing: .05em; color: var(--fg-faint); background: var(--surface-2); padding: 9px 14px; border-bottom: 1px solid var(--border); font-weight: 600; white-space: nowrap; }
+  td { padding: 10px 14px; border-bottom: 1px solid var(--border); vertical-align: top; color: var(--fg-muted); }
+  tr:last-child td { border-bottom: none; }
+  td.k, td code { color: var(--fg); }
+  .badge { display: inline-block; font-family: "IBM Plex Mono", monospace; font-size: 10px; padding: 2px 7px; border-radius: 4px; border: 1px solid var(--border); white-space: nowrap; font-weight: 500; }
+  .badge.get { color: var(--good); border-color: var(--good); background: var(--good-wash); }
+  .badge.post { color: var(--accent); border-color: var(--accent); background: var(--accent-wash); }
+  .badge.delete { color: var(--danger); border-color: var(--danger); background: var(--danger-wash); }
+  .badge.ws { color: var(--warn); border-color: var(--warn); background: var(--warn-wash); }
+  .tier-badge { display: inline-flex; align-items: center; gap: 5px; font-family: "IBM Plex Mono", monospace; font-size: 11px; }
+  .tier-dot { width: 7px; height: 7px; border-radius: 50%; }
+  .tier-dot.read-only { background: var(--good); }
+  .tier-dot.allowed { background: var(--fg-faint); }
+  .tier-dot.approval { background: var(--danger); }
+
+  /* -- cards grid -------------------------------------------------------- */
+  .card-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 10px; margin: 16px 0 24px; }
+  .mode-card { border: 1px solid var(--border); border-radius: var(--radius); padding: 12px 14px; background: var(--surface); }
+  .mode-card .m-name { font-family: "IBM Plex Mono", monospace; font-size: 13px; font-weight: 600; color: var(--accent); }
+  .mode-card .m-count { font-size: 11.5px; color: var(--fg-muted); margin-top: 3px; }
+
+  .primitive-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin: 18px 0 10px; }
+  .primitive-card { border: 1px solid var(--border); border-radius: var(--radius); padding: 18px; background: var(--surface); }
+  .primitive-card .p-name { font-family: "IBM Plex Mono", monospace; color: var(--accent); font-size: 14px; font-weight: 600; margin-bottom: 6px; }
+  .primitive-card p { font-size: 13px; color: var(--fg-muted); margin: 0; }
+
+  figure.diagram { margin: 20px 0 10px; padding: 22px 18px 14px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); }
+  figure.diagram svg { width: 100%; height: auto; display: block; }
+  figcaption { font-size: 12.5px; color: var(--fg-muted); text-align: center; margin-top: 10px; }
+
+  .step-list { counter-reset: step; list-style: none; margin: 16px 0; padding: 0; }
+  .step-list > li { position: relative; padding-left: 38px; margin-bottom: 18px; }
+  .step-list > li::before {
+    counter-increment: step; content: counter(step);
+    position: absolute; left: 0; top: 0; width: 26px; height: 26px; border-radius: 50%;
+    background: var(--accent-wash); color: var(--accent); font-family: "IBM Plex Mono", monospace;
+    font-size: 12px; font-weight: 700; display: flex; align-items: center; justify-content: center;
+  }
+  .step-list h4 { margin: 2px 0 6px; }
+
+  footer.page-footer { border-top: 1px solid var(--border); margin-top: 50px; padding-top: 22px; font-size: 12.5px; color: var(--fg-faint); display: flex; justify-content: space-between; flex-wrap: wrap; gap: 8px; }
+
+  @media (max-width: 860px) {
+    .primitive-grid { grid-template-columns: 1fr; }
+    .stat-row { grid-template-columns: repeat(2, 1fr); }
+  }
+  @media (max-width: 760px) {
+    .menu-btn { display: flex; }
+    .sidebar { position: fixed; left: 0; top: 0; z-index: 18; transform: translateX(-100%); transition: transform .2s ease; box-shadow: 0 0 0 1px var(--border); }
+    .sidebar.open { transform: translateX(0); }
+    .scrim.show { display: block; }
+    .page { padding: 70px 18px 70px; }
+    h1.hero-title { font-size: 28px; }
+  }
+</style>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap">
+
+<button class="menu-btn" id="menuBtn" aria-label="Toggle navigation"><span></span></button>
+<div class="scrim" id="scrim"></div>
+
+<div class="shell">
+  <nav class="sidebar" id="sidebar">
+    <div class="brand">
+      <div class="brand-mark">⚓</div>
+      <div class="brand-text"><strong>Bit Pirate</strong><span>CONTROL SUITE</span></div>
+    </div>
+
+    <div class="nav-group">
+      <div class="nav-group-label">Start here</div>
+      <a class="nav-link" data-target="overview">Overview</a>
+      <a class="nav-link" data-target="architecture">Architecture</a>
+      <a class="nav-link" data-target="quickstart">Quickstart</a>
+    </div>
+    <div class="nav-group">
+      <div class="nav-group-label">Interfaces</div>
+      <a class="nav-link" data-target="cli">CLI reference</a>
+      <a class="nav-link" data-target="api">HTTP &amp; WebSocket API</a>
+      <a class="nav-link" data-target="mcp">MCP tools</a>
+      <a class="nav-link" data-target="webapp">Webapp</a>
+    </div>
+    <div class="nav-group">
+      <div class="nav-group-label">Device model</div>
+      <a class="nav-link" data-target="safety">Safety tiers</a>
+      <a class="nav-link" data-target="modes">Mode spec</a>
+      <a class="nav-link" data-target="recovery">Recovery &amp; reset</a>
+    </div>
+    <div class="nav-group">
+      <div class="nav-group-label">Status</div>
+      <a class="nav-link" data-target="verified">Verified vs. gaps</a>
+    </div>
+
+    <div class="theme-toggle">
+      <button data-theme-btn="system">System</button>
+      <button data-theme-btn="light">Light</button>
+      <button data-theme-btn="dark">Dark</button>
+    </div>
+  </nav>
+
+  <div class="content">
+
+    <!-- ============================= OVERVIEW ============================= -->
+    <section class="view" id="view-overview">
+      <div class="page">
+        <span class="eyebrow"><span class="dot"></span>v0.1 &middot; firmware v1.8</span>
+        <h1 class="hero-title">A network gateway for your<br>ESP32 Bit Pirate.</h1>
+        <p class="hero-sub">One daemon owns the USB connection, permanently. Everything else — a webapp, an AI agent over MCP, a CLI — drives the device over the network instead, through the same three primitives, with no loss of capability.</p>
+
+        <div class="stat-row">
+          <div class="stat"><span class="stat-num">25</span><span class="stat-label">modes spec&rsquo;d</span></div>
+          <div class="stat"><span class="stat-num">263</span><span class="stat-label">commands catalogued</span></div>
+          <div class="stat"><span class="stat-num">3</span><span class="stat-label">front-ends, one gateway</span></div>
+          <div class="stat"><span class="stat-num">19</span><span class="stat-label">commands gated by default</span></div>
+        </div>
+
+        <h2 class="section-title">What this is</h2>
+        <p>The <a href="https://github.com/geo-tp/ESP32-Bit-Pirate" target="_blank" rel="noopener">ESP32 Bit Pirate</a> is a 25-mode hardware-hacking workbench &mdash; I2C, SPI, JTAG, Sub-GHz, LoRa, RFID, Wi-Fi and more &mdash; controlled through a single text console. This project wraps that console in a gateway daemon so the device can stay wired into one machine permanently while being driven from anywhere on the network: a browser, an MCP-speaking agent, or a terminal.</p>
+        <p class="muted">It authors no new device behavior. Every command the gateway can send is a command the firmware's own console already accepts &mdash; this is a transport layer, not a new capability.</p>
+
+        <h2 class="section-title" style="margin-top:40px;">Three primitives, every mode</h2>
+        <p class="section-lede">The firmware's console turns out to only ever do one of three things after you send it a line. The whole system is built on recognizing which, and handling each correctly.</p>
+
+        <div class="primitive-grid">
+          <div class="primitive-card">
+            <div class="p-name">run()</div>
+            <p>Send a line, read until the mode prompt (<code>I2C&gt; </code>) settles. For single-shot commands &mdash; <code>hex</code>, <code>discovery</code>, <code>status</code>.</p>
+          </div>
+          <div class="primitive-card">
+            <div class="p-name">stream()</div>
+            <p>Send a line, then yield output continuously until stopped. For <code>scan</code>, <code>sniff</code>, <code>monitor</code> &mdash; anything that loops until Enter or Ctrl-C.</p>
+          </div>
+          <div class="primitive-card">
+            <div class="p-name">open_session()</div>
+            <p>Send input, read whatever's buffered, repeat. For choice menus, first-time pin config, and raw full-duplex bridges.</p>
+          </div>
+        </div>
+
+        <div class="callout">
+          <span class="callout-label">Why three, not one</span>
+          <p>A naive "send a line, wait for the prompt" model breaks the moment a command asks a question &mdash; switching into I2C mode for the first time doesn't reply <code>Mode changed to I2C</code> at all; it asks for SDA pin, SCL pin, and frequency first. <code>open_session()</code> exists because that distinction is load-bearing, not cosmetic.</p>
+        </div>
+
+        <h2 class="section-title" style="margin-top:40px;">Where to go next</h2>
+        <div class="card-grid" style="grid-template-columns:repeat(auto-fill,minmax(220px,1fr));">
+          <div class="mode-card" style="cursor:pointer" data-goto="architecture"><div class="m-name">→ Architecture</div><div class="m-count">Why the gateway owns USB</div></div>
+          <div class="mode-card" style="cursor:pointer" data-goto="quickstart"><div class="m-name">→ Quickstart</div><div class="m-count">Running in under a minute</div></div>
+          <div class="mode-card" style="cursor:pointer" data-goto="mcp"><div class="m-name">→ MCP tools</div><div class="m-count">Hand it to an agent</div></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================= ARCHITECTURE ============================= -->
+    <section class="view" id="view-architecture">
+      <div class="page">
+        <p class="section-kicker">System design</p>
+        <h2 class="section-title" style="font-size:30px;">One owner of the wire.<br>Everyone else talks over the network.</h2>
+        <p class="section-lede">The device plugs into one host via USB, permanently. A single daemon owns that serial connection exclusively. Every other client &mdash; webapp, agent, CLI &mdash; is a network client of the daemon, authenticated by bearer token, and never touches the device directly.</p>
+
+        <figure class="diagram">
+          <svg viewBox="0 0 860 330" role="img" aria-label="The Bit Pirate connects over USB serial only to the gateway daemon, which also reaches the device's Wi-Fi HTTP API for file transfer only. The webapp, MCP server, and CLI all reach the gateway over the LAN using HTTP and WebSocket requests carrying a bearer token, and never contact the device directly.">
+            <defs>
+              <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+                <path d="M0,0 L10,5 L0,10 z" fill="currentColor"/>
+              </marker>
+            </defs>
+
+            <!-- device -->
+            <rect x="24" y="130" width="150" height="70" rx="8" fill="none" stroke="currentColor" stroke-width="1.4"/>
+            <text x="99" y="160" text-anchor="middle" font-size="13" font-weight="600" fill="currentColor">Bit Pirate</text>
+            <text x="99" y="177" text-anchor="middle" font-size="10.5" fill="currentColor" opacity="0.55">ESP32-S3, 25 modes</text>
+
+            <!-- gateway -->
+            <rect x="320" y="110" width="190" height="110" rx="8" fill="var(--accent-wash)" stroke="var(--accent)" stroke-width="1.6"/>
+            <text x="415" y="148" text-anchor="middle" font-size="13.5" font-weight="700" fill="var(--accent)">bitpirate-gatewayd</text>
+            <text x="415" y="166" text-anchor="middle" font-size="10.5" fill="currentColor" opacity="0.6">owns the serial port</text>
+            <text x="415" y="181" text-anchor="middle" font-size="10.5" fill="currentColor" opacity="0.6">exclusively</text>
+            <text x="415" y="200" text-anchor="middle" font-size="10" fill="currentColor" opacity="0.45">:8420</text>
+
+            <!-- USB edge -->
+            <line x1="174" y1="155" x2="320" y2="155" stroke="currentColor" stroke-width="1.6" marker-end="url(#arrow)"/>
+            <text x="247" y="144" text-anchor="middle" font-size="10.5" fill="currentColor">USB serial · 115200</text>
+            <text x="247" y="172" text-anchor="middle" font-size="9.5" fill="currentColor" opacity="0.55">control plane</text>
+
+            <!-- clients -->
+            <rect x="620" y="24" width="180" height="56" rx="8" fill="none" stroke="currentColor" stroke-width="1.2"/>
+            <text x="710" y="48" text-anchor="middle" font-size="12.5" font-weight="600" fill="currentColor">Webapp</text>
+            <text x="710" y="64" text-anchor="middle" font-size="9.5" fill="currentColor" opacity="0.55">any browser, LAN</text>
+
+            <rect x="620" y="104" width="180" height="56" rx="8" fill="none" stroke="currentColor" stroke-width="1.2"/>
+            <text x="710" y="128" text-anchor="middle" font-size="12.5" font-weight="600" fill="currentColor">MCP server</text>
+            <text x="710" y="144" text-anchor="middle" font-size="9.5" fill="currentColor" opacity="0.55">Claude Code / any client</text>
+
+            <rect x="620" y="184" width="180" height="56" rx="8" fill="none" stroke="currentColor" stroke-width="1.2"/>
+            <text x="710" y="208" text-anchor="middle" font-size="12.5" font-weight="600" fill="currentColor">CLI</text>
+            <text x="710" y="224" text-anchor="middle" font-size="9.5" fill="currentColor" opacity="0.55">anywhere on the LAN</text>
+
+            <line x1="510" y1="140" x2="620" y2="52" stroke="currentColor" stroke-width="1.2" marker-end="url(#arrow)"/>
+            <line x1="510" y1="155" x2="620" y2="132" stroke="currentColor" stroke-width="1.2" marker-end="url(#arrow)"/>
+            <line x1="510" y1="172" x2="620" y2="212" stroke="currentColor" stroke-width="1.2" marker-end="url(#arrow)"/>
+            <text x="565" y="90" text-anchor="middle" font-size="10" fill="currentColor" font-weight="600">HTTP + WebSocket</text>
+            <text x="565" y="103" text-anchor="middle" font-size="9" fill="currentColor" opacity="0.55">Authorization: Bearer &lt;token&gt;</text>
+
+            <!-- Wi-Fi file path, dashed -->
+            <path d="M99 130 C 99 70, 300 40, 415 110" fill="none" stroke="currentColor" stroke-width="1.2" stroke-dasharray="4 4" opacity="0.65" marker-end="url(#arrow)"/>
+            <text x="250" y="48" text-anchor="middle" font-size="10" fill="currentColor" opacity="0.65">device Wi-Fi (STA) · HTTP</text>
+            <text x="250" y="61" text-anchor="middle" font-size="9" fill="currentColor" opacity="0.5">file transfer (LittleFS) only</text>
+
+            <!-- base line -->
+            <line x1="24" y1="280" x2="800" y2="280" stroke="currentColor" stroke-width="0.6" opacity="0.25"/>
+            <text x="24" y="306" font-size="10.5" fill="currentColor" opacity="0.55">Everything in the right-hand column reaches the device only through the gateway &mdash; never directly, never over the device's own Wi-Fi console.</text>
+          </svg>
+        </figure>
+        <figcaption>The gateway is the single owner of the USB link; the device's own Wi-Fi is used only to proxy file transfer, never control.</figcaption>
+
+        <h3>Why not just use the device's own Wi-Fi console?</h3>
+        <p>The firmware already serves a web terminal over its own Wi-Fi (<code>ws://&lt;device-ip&gt;/ws</code>). It was the first design considered, and rejected for three concrete reasons found in the firmware's source, not assumptions:</p>
+        <ul>
+          <li><strong>No authentication.</strong> Anyone who can reach the device's IP controls it.</li>
+          <li><strong>Single-client eviction.</strong> A second WebSocket connection silently disconnects the first &mdash; there is no real arbitration between simultaneous clients.</li>
+          <li><strong>Self-disconnecting commands.</strong> Running <code>deauth</code> or <code>flood</code> in WIFI mode reconfigures the device's own radio &mdash; the same radio carrying the control session. The firmware's own source code warns about exactly this.</li>
+        </ul>
+        <p>Routing control over USB instead sidesteps all three: USB is a dedicated wired link unaffected by what the device's radio is doing, and the gateway enforces real arbitration (one controller at a time, explicit rejection otherwise) in code instead of leaving it to the device's own WebSocket eviction behavior.</p>
+
+        <h3>The one thing that still needs Wi-Fi</h3>
+        <p>File storage (captured IR/Sub-GHz/LoRa profiles, scripts) lives on the device's LittleFS filesystem, exposed only through the device's own HTTP API &mdash; there's no serial command for it. The gateway proxies that one feature over the device's Wi-Fi, so network clients still never reach the device directly; they reach the gateway, which reaches the device.</p>
+
+        <h3>Single-controller arbitration</h3>
+        <p>Streaming and interactive sessions are exclusive: only one network client can hold the controller lock for <code>/api/stream</code>, <code>/api/session</code>, or <code>/api/term</code> at a time. A second request while one is active gets an explicit <code>stream busy</code> response naming the current controller &mdash; not a silent takeover, and not a queue.</p>
+      </div>
+    </section>
+
+    <!-- ============================= QUICKSTART ============================= -->
+    <section class="view" id="view-quickstart">
+      <div class="page">
+        <p class="section-kicker">Getting started</p>
+        <h2 class="section-title" style="font-size:30px;">Running in under a minute</h2>
+        <p class="section-lede">Plug the device in once. Start the gateway once. Everything after that is a network call.</p>
+
+        <ol class="step-list">
+          <li>
+            <h4>Install</h4>
+            <pre><span class="c"># from the project root</span>
+python3 -m venv .venv
+.venv/bin/pip install -e ".[dev]"</pre>
+          </li>
+          <li>
+            <h4>Start the gateway</h4>
+            <p class="muted" style="margin-bottom:6px;">Auto-detects the console port by USB vendor/product ID, and generates a bearer token into <code>~/.config/bitpirate/gateway.toml</code> on first run.</p>
+            <pre>.venv/bin/python -m bitpirate.gatewayd
+<span class="c"># INFO  Using serial port /dev/ttyACM0</span>
+<span class="c"># INFO  Gateway token: 122a1be3d376...</span>
+<span class="c"># INFO  Uvicorn running on http://0.0.0.0:8420</span></pre>
+          </li>
+          <li>
+            <h4>Drive it from the CLI</h4>
+            <pre>.venv/bin/bitpirate exec <span class="s">"hex 255"</span>
+.venv/bin/bitpirate mode i2c
+.venv/bin/bitpirate exec <span class="s">"discovery"</span>
+.venv/bin/bitpirate stream <span class="s">"scan"</span>        <span class="c"># Ctrl-C to stop</span>
+.venv/bin/bitpirate repl               <span class="c"># full interactive terminal</span></pre>
+          </li>
+          <li>
+            <h4>Or open the webapp</h4>
+            <pre>open http://&lt;gateway-host&gt;:8420/
+<span class="c"># asks for the token on first load, then remembers it</span></pre>
+          </li>
+          <li>
+            <h4>Or register the MCP server</h4>
+            <p class="muted" style="margin-bottom:6px;"><code>.mcp.json</code> is already set up for this repo &mdash; Claude Code (or any MCP client) picks it up automatically.</p>
+            <pre>{
+  <span class="s">"mcpServers"</span>: {
+    <span class="s">"bitpirate"</span>: {
+      <span class="s">"command"</span>: <span class="s">"/path/to/.venv/bin/python"</span>,
+      <span class="s">"args"</span>: [<span class="s">"-m"</span>, <span class="s">"bitpirate.mcp_server"</span>]
+    }
+  }
+}</pre>
+          </li>
+        </ol>
+
+        <h3>Run it as a service</h3>
+        <p>So it survives reboots, with the USB cable permanently attached:</p>
+        <pre>mkdir -p ~/.config/systemd/user
+cp bitpirate-gatewayd.service ~/.config/systemd/user/
+systemctl --user daemon-reload
+systemctl --user enable --now bitpirate-gatewayd
+loginctl enable-linger <span class="s">"$USER"</span>   <span class="c"># keeps running without an active login</span></pre>
+      </div>
+    </section>
+
+    <!-- ============================= CLI ============================= -->
+    <section class="view" id="view-cli">
+      <div class="page">
+        <p class="section-kicker">Reference</p>
+        <h2 class="section-title" style="font-size:30px;">CLI reference</h2>
+        <p class="section-lede">Talks to the gateway over the network by default, even on <code>localhost</code> &mdash; consistent with every other front-end never touching the device directly. Pass <code>--local</code> to bypass the gateway and talk to the serial port directly, for bootstrapping or debugging before the gateway exists.</p>
+
+        <div class="table-wrap">
+          <table>
+            <tr><th>Command</th><th>What it does</th></tr>
+            <tr><td class="k"><code>bitpirate exec "&lt;cmd&gt;"</code></td><td>Run one transactional command, print its output. <code>--confirm</code> for approval-required commands.</td></tr>
+            <tr><td class="k"><code>bitpirate mode &lt;name&gt;</code></td><td>Switch mode, transparently answering any first-time pin/config prompts with defaults.</td></tr>
+            <tr><td class="k"><code>bitpirate stream "&lt;cmd&gt;"</code></td><td>Run a streaming command; prints as it arrives, Ctrl-C to stop.</td></tr>
+            <tr><td class="k"><code>bitpirate repl</code></td><td>Full interactive passthrough terminal over the gateway.</td></tr>
+            <tr><td class="k"><code>bitpirate status</code></td><td>Gateway and device connection status as JSON.</td></tr>
+            <tr><td class="k"><code>bitpirate reset</code></td><td>Hardware-reset the device (~8s). See <a data-goto="recovery">Recovery &amp; reset</a>.</td></tr>
+            <tr><td class="k"><code>bitpirate fs ls [dir]</code></td><td>List files on the device's LittleFS storage.</td></tr>
+            <tr><td class="k"><code>bitpirate fs push &lt;local&gt; &lt;remote&gt;</code></td><td>Upload a local file to the device.</td></tr>
+            <tr><td class="k"><code>bitpirate fs pull &lt;remote&gt; &lt;local&gt;</code></td><td>Download a file from the device.</td></tr>
+            <tr><td class="k"><code>bitpirate fs rm &lt;remote&gt;</code></td><td>Delete a file on the device.</td></tr>
+          </table>
+        </div>
+
+        <h3>Global options</h3>
+        <div class="table-wrap">
+          <table>
+            <tr><th>Flag</th><th>Default</th><th>Meaning</th></tr>
+            <tr><td class="k"><code>--gateway-url</code></td><td><code>http://127.0.0.1:8420</code></td><td>Where the gateway is listening.</td></tr>
+            <tr><td class="k"><code>--local</code></td><td>off</td><td>Talk to <code>--port</code> directly, bypassing the gateway entirely.</td></tr>
+            <tr><td class="k"><code>--port</code></td><td>autodetected</td><td>Serial port, only used with <code>--local</code>.</td></tr>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================= API ============================= -->
+    <section class="view" id="view-api">
+      <div class="page">
+        <p class="section-kicker">Reference</p>
+        <h2 class="section-title" style="font-size:30px;">HTTP &amp; WebSocket API</h2>
+        <p class="section-lede">Every route under <code>/api/*</code> requires a bearer token &mdash; either <code>Authorization: Bearer &lt;token&gt;</code> (HTTP) or <code>?token=</code> (WebSocket, which can't set headers). The gateway binds <code>0.0.0.0</code> by default; the token is the actual security boundary, not the interface binding.</p>
+
+        <div class="table-wrap">
+          <table>
+            <tr><th>Route</th><th></th><th>Description</th></tr>
+            <tr><td class="k"><span class="route-path">/api/device</span></td><td><span class="badge get">GET</span></td><td>Connection status, current mode, firmware ref, who (if anyone) holds the controller lock.</td></tr>
+            <tr><td class="k"><span class="route-path">/api/modes</span></td><td><span class="badge get">GET</span></td><td>The full generated mode spec &mdash; every mode, command, kind, and tier.</td></tr>
+            <tr><td class="k"><span class="route-path">/api/run</span></td><td><span class="badge post">POST</span></td><td>Transactional command. Body: <code>{cmd, confirm, timeout}</code>. 409 if the command turns out to need multi-turn interaction; 403 if approval-required without <code>confirm</code>.</td></tr>
+            <tr><td class="k"><span class="route-path">/api/mode/{name}</span></td><td><span class="badge post">POST</span></td><td>Switch mode.</td></tr>
+            <tr><td class="k"><span class="route-path">/api/interrupt</span></td><td><span class="badge post">POST</span></td><td>Send Ctrl-C.</td></tr>
+            <tr><td class="k"><span class="route-path">/api/reset</span></td><td><span class="badge post">POST</span></td><td>Hardware reset (~8s). See <a data-goto="recovery">Recovery &amp; reset</a>.</td></tr>
+            <tr><td class="k"><span class="route-path">/api/stream</span></td><td><span class="badge ws">WS</span></td><td>Streaming command. Query: <code>cmd</code>, <code>token</code>, <code>confirm</code>. Send any text to stop. Single-controller: a second concurrent request gets a <code>stream busy</code> error.</td></tr>
+            <tr><td class="k"><span class="route-path">/api/session</span></td><td><span class="badge ws">WS</span></td><td>Interactive session. Same query params. Send lines to answer prompts; <code>__close__</code> to end.</td></tr>
+            <tr><td class="k"><span class="route-path">/api/term</span></td><td><span class="badge ws">WS</span></td><td>Raw full-duplex terminal passthrough &mdash; every mode, every command, as if typing directly.</td></tr>
+            <tr><td class="k"><span class="route-path">/api/fs/list</span></td><td><span class="badge get">GET</span></td><td>List LittleFS files. Needs <code>wifi_host</code> configured &mdash; 503 otherwise.</td></tr>
+            <tr><td class="k"><span class="route-path">/api/fs/upload</span></td><td><span class="badge post">POST</span></td><td>Upload a file (raw body, <code>?file=</code>).</td></tr>
+            <tr><td class="k"><span class="route-path">/api/fs/download</span></td><td><span class="badge get">GET</span></td><td>Download a file (<code>?file=</code>).</td></tr>
+            <tr><td class="k"><span class="route-path">/api/fs/delete</span></td><td><span class="badge delete">DELETE</span></td><td>Delete a file (<code>?file=</code>).</td></tr>
+          </table>
+        </div>
+
+        <h3>Example: run, then stream</h3>
+        <pre><span class="c"># transactional</span>
+curl -H <span class="s">"Authorization: Bearer $TOKEN"</span> -H <span class="s">"Content-Type: application/json"</span> \
+  -d <span class="s">'{"cmd": "hex 255"}'</span> http://127.0.0.1:8420/api/run
+<span class="c"># {"output": "...Dec: 255\nHex: 0xFF\nBin: 11111111", "mode": "HIZ"}</span>
+
+<span class="c"># streaming, over websockets</span>
+wscat -c <span class="s">"ws://127.0.0.1:8420/api/stream?cmd=scan&amp;token=$TOKEN"</span></pre>
+
+        <h3>A rejected approval-required call</h3>
+        <pre>curl ... -d <span class="s">'{"cmd": "erase"}'</span> http://127.0.0.1:8420/api/run
+<span class="c"># 403</span>
+<span class="c"># {"detail": "'erase' in mode RFID is tagged approval-required</span>
+<span class="c">#            (destructive or offensive). Resend with confirm=true."}</span></pre>
+      </div>
+    </section>
+
+    <!-- ============================= MCP ============================= -->
+    <section class="view" id="view-mcp">
+      <div class="page">
+        <p class="section-kicker">Reference</p>
+        <h2 class="section-title" style="font-size:30px;">MCP tools</h2>
+        <p class="section-lede">A thin network client of the gateway &mdash; it never touches the serial port, so it can run on a different machine than the one with the USB cable. 16 tools, exercised over real JSON-RPC/stdio protocol messages, not just imported and inspected.</p>
+
+        <div class="callout warn">
+          <span class="callout-label">Authorized use</span>
+          <p>Bit Pirate includes RF/wireless and offensive modes &mdash; WIFI <code>deauth</code>/<code>flood</code>, Sub-GHz <code>bruteforce</code>/<code>jam</code>, RFID <code>clone</code>. These tools are a faithful pass-through to the device's own existing CLI; they author no attack logic. Approval-required commands need <code>confirm=True</code> and are otherwise rejected. Use only on hardware, devices, and networks you own or are explicitly authorized to test.</p>
+        </div>
+
+        <h3>Core control</h3>
+        <div class="table-wrap">
+          <table>
+            <tr><th>Tool</th><th>Signature</th></tr>
+            <tr><td>Run a command</td><td class="k"><code>run_command(cmd, confirm=False)</code></td></tr>
+            <tr><td>Switch mode</td><td class="k"><code>set_mode(name)</code></td></tr>
+            <tr><td>Interrupt</td><td class="k"><code>interrupt()</code></td></tr>
+            <tr><td>Hardware reset</td><td class="k"><code>reset_device()</code></td></tr>
+            <tr><td>Run a streaming command</td><td class="k"><code>stream_command(cmd, seconds=5.0, confirm=False)</code></td></tr>
+            <tr><td>List every mode &amp; command</td><td class="k"><code>list_modes()</code></td></tr>
+            <tr><td>Describe one mode</td><td class="k"><code>describe_mode(mode)</code></td></tr>
+            <tr><td>Connection/status</td><td class="k"><code>device_status()</code></td></tr>
+          </table>
+        </div>
+
+        <h3>Interactive sessions</h3>
+        <p class="muted" style="margin-top:-4px;">For multi-turn commands &mdash; choice menus, first-time config, raw bridges.</p>
+        <div class="table-wrap">
+          <table>
+            <tr><th>Tool</th><th>Signature</th></tr>
+            <tr><td>Open a session</td><td class="k"><code>open_session(cmd, confirm=False)</code></td></tr>
+            <tr><td>Answer a prompt</td><td class="k"><code>send_input(session_id, text)</code></td></tr>
+            <tr><td>Read new output</td><td class="k"><code>read_output(session_id, wait_seconds=1.0)</code></td></tr>
+            <tr><td>Close it</td><td class="k"><code>close_session(session_id)</code></td></tr>
+          </table>
+        </div>
+
+        <h3>File storage</h3>
+        <div class="table-wrap">
+          <table>
+            <tr><th>Tool</th><th>Signature</th></tr>
+            <tr><td>List files</td><td class="k"><code>fs_list(dir="/")</code></td></tr>
+            <tr><td>Download (base64)</td><td class="k"><code>fs_pull(remote_name)</code></td></tr>
+            <tr><td>Upload (base64)</td><td class="k"><code>fs_push(remote_name, content_b64)</code></td></tr>
+            <tr><td>Delete</td><td class="k"><code>fs_delete(remote_name)</code></td></tr>
+          </table>
+        </div>
+
+        <h3>Example session</h3>
+        <pre><span class="c">&gt; open_session("rfid write")</span>
+session_id=a1b2c3d4
+RFID&gt; write
+Choose write option:
+  [1] * UID (magic card)
+  [2]   Block/Page data
+
+<span class="c">&gt; send_input(a1b2c3d4, "1")</span>
+sent
+
+<span class="c">&gt; read_output(a1b2c3d4)</span>
+Enter index (default 1): 1
+RFID Write UID: This requires a MAGIC MIFARE Classic card...
+
+<span class="c">&gt; close_session(a1b2c3d4)</span>
+closed</pre>
+      </div>
+    </section>
+
+    <!-- ============================= WEBAPP ============================= -->
+    <section class="view" id="view-webapp">
+      <div class="page">
+        <p class="section-kicker">Interface</p>
+        <h2 class="section-title" style="font-size:30px;">Webapp</h2>
+        <p class="section-lede">Served directly by the gateway at <code>/</code> &mdash; no separate build step, no separate host. Three tabs, all driven by the same API surface documented above.</p>
+
+        <div class="card-grid" style="grid-template-columns:repeat(auto-fill,minmax(230px,1fr));">
+          <div class="mode-card">
+            <div class="m-name">Terminal</div>
+            <div class="m-count">Full REPL over <code>/api/term</code> &mdash; every mode, every command, raw instruction syntax. Shared: only one client controls it at a time.</div>
+          </div>
+          <div class="mode-card">
+            <div class="m-name">Modes</div>
+            <div class="m-count">Every mode and command from <code>/api/modes</code>, with run/stream buttons and a confirmation dialog for approval-required commands.</div>
+          </div>
+          <div class="mode-card">
+            <div class="m-name">Files</div>
+            <div class="m-count">LittleFS browser over <code>/api/fs/*</code> &mdash; list, download, delete. Needs the device on Wi-Fi.</div>
+          </div>
+        </div>
+
+        <p class="muted">The token is requested once on first load and kept in the browser's local storage for that origin &mdash; it never leaves the device it was entered on.</p>
+      </div>
+    </section>
+
+    <!-- ============================= SAFETY ============================= -->
+    <section class="view" id="view-safety">
+      <div class="page">
+        <p class="section-kicker">Device model</p>
+        <h2 class="section-title" style="font-size:30px;">Safety tiers</h2>
+        <p class="section-lede">Every command in the generated spec carries a tier. Destructive target operations and offensive RF/network commands need an explicit <code>confirm</code> &mdash; rejected with the reason otherwise, not silently run.</p>
+
+        <div class="stat-row" style="grid-template-columns:repeat(3,1fr);">
+          <div class="stat"><span class="stat-num" style="color:var(--good)">65</span><span class="stat-label">read-only</span></div>
+          <div class="stat"><span class="stat-num" style="color:var(--fg-faint)">179</span><span class="stat-label">allowed</span></div>
+          <div class="stat"><span class="stat-num" style="color:var(--danger)">19</span><span class="stat-label">approval-required</span></div>
+        </div>
+
+        <div class="table-wrap">
+          <table>
+            <tr><th>Tier</th><th>Meaning</th><th>Examples</th></tr>
+            <tr><td><span class="tier-badge"><span class="tier-dot read-only"></span>read-only</span></td><td>Reads, scans, dumps. Never changes device or target state.</td><td class="k"><code>scan</code>, <code>discovery</code>, <code>regs</code>, <code>pins</code></td></tr>
+            <tr><td><span class="tier-badge"><span class="tier-dot allowed"></span>allowed</span></td><td>Writes or configures, but isn't destructive or offensive by name.</td><td class="k"><code>config</code>, <code>send</code>, <code>connect</code></td></tr>
+            <tr><td><span class="tier-badge"><span class="tier-dot approval"></span>approval-required</span></td><td>Destructive target ops or offensive RF/network. Needs <code>confirm=true</code>.</td><td class="k"><code>erase</code>, <code>deauth</code>, <code>flood</code>, <code>jam</code>, <code>clone</code>, <code>bruteforce</code></td></tr>
+          </table>
+        </div>
+
+        <h3>Double-gated, mode-scoped</h3>
+        <p>The gate is scoped to the command's actual mode &mdash; <code>erase</code> is approval-required in RFID mode, but a bare <code>erase</code> sent while in I2C mode isn't a recognized I2C command at all, so it falls through to the default tier rather than matching by name alone. Where the device itself prints its own confirmation prompt, the gateway drives that too: <code>confirm=true</code> isn't treated as sufficient on its own.</p>
+
+        <h3>Approval tier is adopted, not invented</h3>
+        <p class="muted">The three-tier model mirrors <a href="https://github.com/Indigaz/bitpirate-mcp" target="_blank" rel="noopener">Indigaz/bitpirate-mcp</a>'s approval-gating design &mdash; a proven pattern, not a novel one.</p>
+      </div>
+    </section>
+
+    <!-- ============================= MODES ============================= -->
+    <section class="view" id="view-modes">
+      <div class="page">
+        <p class="section-kicker">Device model</p>
+        <h2 class="section-title" style="font-size:30px;">Mode spec</h2>
+        <p class="section-lede">Generated from firmware source pinned at the <code>v1.8</code> tag &mdash; not hand-maintained. Each command is classified by kind (transactional / streaming / interactive) and tier, plus whether the mode accepts raw bracket instruction syntax like <code>[0x9F r:3]</code>, a second grammar the normal command scrape alone would miss.</p>
+
+        <div class="stat-row" style="grid-template-columns:repeat(3,1fr);">
+          <div class="stat"><span class="stat-num">135</span><span class="stat-label">transactional</span></div>
+          <div class="stat"><span class="stat-num">76</span><span class="stat-label">streaming</span></div>
+          <div class="stat"><span class="stat-num">52</span><span class="stat-label">interactive</span></div>
+        </div>
+
+        <div class="card-grid" id="modeGrid"></div>
+
+        <h3>Regenerating after a firmware update</h3>
+        <pre>.venv/bin/python tools/gen_modes_spec.py --ref v1.9   <span class="c"># or whatever tag</span></pre>
+        <p class="muted">Static pass only: scrapes <code>src/Controllers/*Controller.cpp</code> for each mode's command dispatch. An optional dynamic pass (run <code>help</code> against a live device, cross-check streaming markers) is planned but not yet automated &mdash; see <a data-goto="verified">Verified vs. gaps</a>.</p>
+      </div>
+    </section>
+
+    <!-- ============================= RECOVERY ============================= -->
+    <section class="view" id="view-recovery">
+      <div class="page">
+        <p class="section-kicker">Device model</p>
+        <h2 class="section-title" style="font-size:30px;">Recovery &amp; reset</h2>
+        <p class="section-lede">UART/HDUART <code>bridge</code> mode has no typed exit on this board &mdash; it only responds to a physical button, and the board this was built against (a Lonely Binary PinPulse Shield) doesn't have one. <code>reset_device()</code> exists because of that.</p>
+
+        <h3>What actually works, found by testing, not assumed</h3>
+        <p>A plain DTR/RTS pulse &mdash; the textbook ESP32 auto-reset mechanism &mdash; was verified via continuous USB bus polling to have <strong>zero effect</strong> on this board's native USB-Serial-JTAG peripheral. What works instead: shelling out to <code>esptool</code> with retries, then waiting out the firmware's own boot-time <code>"Press any key to start..."</code> gate.</p>
+
+        <div class="table-wrap">
+          <table>
+            <tr><th>Attempted</th><th>Result</th></tr>
+            <tr><td>Raw DTR/RTS pulse (textbook timing)</td><td>No effect &mdash; confirmed via continuous <code>lsusb</code> polling across the call.</td></tr>
+            <tr><td><code>esp_pylib</code>'s own USB-specific timing</td><td>Also no effect, called in isolation.</td></tr>
+            <tr><td><code>esptool</code>'s <code>HardReset</code> strategy class directly</td><td>Still no effect &mdash; the retry wrapper alone wasn't the missing piece.</td></tr>
+            <tr><td>Full <code>esptool ... chip-id</code> CLI invocation</td><td><strong>Works</strong> &mdash; but not always on the first attempt; one in three hit a genuine mid-reset <code>ENODEV</code>.</td></tr>
+          </table>
+        </div>
+
+        <p>The shipped implementation shells out to the full <code>esptool</code> flow with its own retry loop, then actively waits for the boot banner and a settled prompt before returning &mdash; about 8 seconds end to end, confirmed to leave the device in a genuinely clean state rather than just timed around.</p>
+
+        <h4>When to use it</h4>
+        <ul>
+          <li>A wedged <code>bridge</code> session with no other way out.</li>
+          <li>A dangling interactive session left by an abruptly-closed client &mdash; closing a session releases the gateway's controller lock, but not the device's own pending state.</li>
+          <li>Any other unresponsive state.</li>
+        </ul>
+
+        <pre>.venv/bin/bitpirate reset
+<span class="c"># resetting (this takes ~8s)...</span>
+<span class="c"># {"ok": true, "mode": "HIZ"}</span></pre>
+      </div>
+    </section>
+
+    <!-- ============================= VERIFIED ============================= -->
+    <section class="view" id="view-verified">
+      <div class="page">
+        <p class="section-kicker">Status</p>
+        <h2 class="section-title" style="font-size:30px;">Verified vs. known gaps</h2>
+        <p class="section-lede">Tested against a real ESP32-S3 Gold Edition + PinPulse Shield (Lonely Binary), firmware v1.8, native USB-CDC console &mdash; not just written and assumed to work. Read this before trusting anything here blind.</p>
+
+        <h3>Verified against real hardware</h3>
+        <ul>
+          <li><strong>Core protocol.</strong> Single-<code>\r</code> line termination (not <code>\r\n</code> &mdash; the trailing <code>\n</code> gets silently consumed as an extra Enter by whatever reads next), settled-prompt vs. sub-prompt detection, carriage-return redraw collapsing. Verified across transactional, streaming, and interactive command shapes.</li>
+          <li><strong><code>set_mode()</code>.</strong> Confirmed on a mode needing first-time pin config (I2C) and one that doesn't (direct reply). Handles both transparently.</li>
+          <li><strong><code>reset_device()</code>.</strong> See <a data-goto="recovery">Recovery &amp; reset</a> for the full story &mdash; confirmed to leave a genuinely clean, immediately-usable connection, not just a timed delay.</li>
+          <li><strong>Gateway.</strong> Bearer-token auth, mode-scoped approval gate, <code>/api/run</code>, <code>/api/stream</code> (including stop-on-disconnect even when the client is killed abruptly), <code>/api/session</code>, <code>/api/reset</code> &mdash; all driven over real HTTP/WebSocket calls, not mocks.</li>
+          <li><strong>CLI and MCP server.</strong> Both tested as real clients; the MCP server via actual JSON-RPC/stdio protocol messages.</li>
+          <li><strong>Mode spec.</strong> Generated at the <code>v1.8</code> tag, cross-checked by hand against several controllers (RFID, WIFI, CAN, I2C).</li>
+        </ul>
+
+        <h3>Known gaps</h3>
+        <div class="callout warn">
+          <span class="callout-label">LittleFS file transfer</span>
+          <p>Source-verified against the firmware's exact JSON response shape and all four HTTP handlers, but never exercised against a live device &mdash; it requires the device's own Wi-Fi SSID/password, which this build doesn't have on file.</p>
+        </div>
+        <div class="callout warn">
+          <span class="callout-label">Device-side session cleanup</span>
+          <p>Closing a session or stream releases the gateway's controller lock, but not the device's own pending state &mdash; confirmed live: closing mid-<code>rfid write</code> leaves the device sitting at that sub-prompt for whoever connects next. <code>reset_device()</code> is the reliable recovery.</p>
+        </div>
+        <div class="callout warn">
+          <span class="callout-label">Webapp</span>
+          <p>Every API call it makes is separately verified working, and the embedded JS is syntax-checked &mdash; but it has never been opened in an actual GUI browser in this build environment.</p>
+        </div>
+        <div class="callout">
+          <span class="callout-label">Out of scope by design</span>
+          <p>Firmware (re)flashing needs bootloader-mode access that conflicts with the gateway's exclusive hold on the serial port. Not wired up in this pass.</p>
+        </div>
+      </div>
+    </section>
+
+  </div>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  var VIEWS = ["overview","architecture","quickstart","cli","api","mcp","webapp","safety","modes","recovery","verified"];
+  var sidebar = document.getElementById("sidebar");
+  var scrim = document.getElementById("scrim");
+  var menuBtn = document.getElementById("menuBtn");
+
+  function showView(id) {
+    if (VIEWS.indexOf(id) === -1) id = "overview";
+    VIEWS.forEach(function (v) {
+      var el = document.getElementById("view-" + v);
+      if (el) el.classList.toggle("active", v === id);
+    });
+    document.querySelectorAll(".nav-link").forEach(function (a) {
+      a.classList.toggle("active", a.getAttribute("data-target") === id);
+    });
+    sidebar.classList.remove("open");
+    scrim.classList.remove("show");
+    document.querySelector(".content").scrollTo({ top: 0 });
+    window.scrollTo({ top: 0 });
+  }
+
+  document.querySelectorAll(".nav-link[data-target]").forEach(function (a) {
+    a.addEventListener("click", function (e) {
+      e.preventDefault();
+      var id = a.getAttribute("data-target");
+      showView(id);
+      history.replaceState(null, "", "#" + id);
+    });
+  });
+
+  document.querySelectorAll("[data-goto]").forEach(function (el) {
+    el.addEventListener("click", function () {
+      var id = el.getAttribute("data-goto");
+      showView(id);
+      history.replaceState(null, "", "#" + id);
+    });
+  });
+
+  menuBtn.addEventListener("click", function () {
+    sidebar.classList.toggle("open");
+    scrim.classList.toggle("show");
+  });
+  scrim.addEventListener("click", function () {
+    sidebar.classList.remove("open");
+    scrim.classList.remove("show");
+  });
+
+  // deep link via a bare #token
+  var initial = (location.hash || "").replace("#", "");
+  showView(VIEWS.indexOf(initial) !== -1 ? initial : "overview");
+
+  // -- theme toggle (persisted per-viewer only, via localStorage) --------
+  function applyTheme(mode) {
+    if (mode === "system") document.documentElement.removeAttribute("data-theme");
+    else document.documentElement.setAttribute("data-theme", mode);
+    document.querySelectorAll("[data-theme-btn]").forEach(function (b) {
+      b.classList.toggle("active", b.getAttribute("data-theme-btn") === mode);
+    });
+    try { localStorage.setItem("bitpirate_docs_theme", mode); } catch (e) {}
+  }
+  document.querySelectorAll("[data-theme-btn]").forEach(function (b) {
+    b.addEventListener("click", function () { applyTheme(b.getAttribute("data-theme-btn")); });
+  });
+  var savedTheme = "system";
+  try { savedTheme = localStorage.getItem("bitpirate_docs_theme") || "system"; } catch (e) {}
+  applyTheme(savedTheme);
+
+  // -- mode grid, filled from the generated spec's live numbers ------------
+  var MODES = [
+    ["I2C",21],["UART",20],["WIFI",25],["LORA",21],["SUBGHZ",17],["DIO",16],
+    ["ETHERNET",13],["CELL",11],["LED",11],["USB",11],["INFRARED",10],
+    ["1WIRE",9],["RF24",9],["BLUETOOTH",9],["SPI",7],["FM",6],["I2S",5],
+    ["RFID",5],["CAN",5],["HDUART",2],["3WIRE",2],["2WIRE",3],["JTAG",3],
+    ["EXPANDER",0],["GENERAL",22]
+  ];
+  var grid = document.getElementById("modeGrid");
+  MODES.sort(function (a, b) { return b[1] - a[1]; }).forEach(function (m) {
+    var card = document.createElement("div");
+    card.className = "mode-card";
+    card.innerHTML = '<div class="m-name">' + m[0] + '</div><div class="m-count">' + m[1] + ' command' + (m[1] === 1 ? '' : 's') + '</div>';
+    grid.appendChild(card);
+  });
+})();
+</script>
