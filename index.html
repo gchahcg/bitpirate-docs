@@ -322,6 +322,7 @@
       <div class="nav-group-label">Device model</div>
       <a class="nav-link" data-target="safety">Safety tiers</a>
       <a class="nav-link" data-target="modes">Mode spec</a>
+      <a class="nav-link" data-target="hardware">Hardware</a>
       <a class="nav-link" data-target="recovery">Recovery &amp; reset</a>
     </div>
     <div class="nav-group">
@@ -770,6 +771,80 @@ closed</pre>
       </div>
     </section>
 
+    <!-- ============================= HARDWARE ============================= -->
+    <section class="view" id="view-hardware">
+      <div class="page">
+        <p class="section-kicker">Device model</p>
+        <h2 class="section-title" style="font-size:30px;">Hardware you'd add</h2>
+        <p class="section-lede">HIZ, DIO, LED (as a mode), BLUETOOTH, WIFI, and GENERAL work with nothing extra &mdash; onboard radio and GPIO cover them. Everything below needs a module wired in. Chip choices are confirmed against the firmware's own <a href="https://github.com/geo-tp/ESP32-Bit-Pirate/wiki" target="_blank" rel="noopener">wiki</a>, not guessed &mdash; e.g. RFID is the <strong>PN532 over I2C</strong>, not the RC522/SPI reader most projects default to.</p>
+
+        <div class="callout warn">
+          <span class="callout-label">Pin conflicts are real</span>
+          <p>I2C (SDA 6) and 1-Wire (GPIO 6) collide on firmware defaults. CAN's CS pin is hardcoded, not reconfigurable. For a permanent multi-peripheral build: give every SPI device its own CS off the shared MOSI/MISO/SCLK bus, and reconfigure via each mode's <code>config</code> command rather than assuming defaults coexist.</p>
+        </div>
+        <div class="callout danger">
+          <span class="callout-label">Four of these transmit, not just listen</span>
+          <p>SUBGHZ, LORA, FM, and CELL all key up an actual radio. The firmware's own LoRa wiki page: <em>"RF transmission may be regulated depending on frequency, power and local legislation."</em> Same logic applies to the other three &mdash; check your region's rules, same spirit as this project's authorized-use note.</p>
+        </div>
+
+        <h3>I2C bus &mdash; SDA 6 / SCL 7</h3>
+        <div class="table-wrap">
+          <table>
+            <tr><th>Mode</th><th>Hardware</th><th>Buy</th><th>Wiki</th></tr>
+            <tr><td class="k">I2C</td><td>Any I2C breakout &mdash; BME280 shown</td><td><a href="https://www.amazon.com/BME280-Environmental-Sensor-Temperature-Barometric/dp/B07P4CWGGK" target="_blank" rel="noopener">Amazon</a></td><td><a href="https://github.com/geo-tp/ESP32-Bit-Pirate/wiki/05-I2C" target="_blank" rel="noopener">05-I2C</a></td></tr>
+            <tr><td class="k">RFID</td><td><strong>PN532</strong> reader (I2C, not SPI)</td><td><a href="https://www.amazon.com/DIANN-Module-Communication-Reader-Android/dp/B0B7L47YSZ" target="_blank" rel="noopener">Amazon</a></td><td><a href="https://github.com/geo-tp/ESP32-Bit-Pirate/wiki/20-RFID" target="_blank" rel="noopener">20-RFID</a></td></tr>
+            <tr><td class="k">RFID (consumable)</td><td>Magic/UID-rewritable Mifare cards &mdash; the <code>write</code> command needs one specifically</td><td><a href="https://www.amazon.com/13-56Mhz-ISO14443A-Changeable-Sector0-Rewritable/dp/B096D9XLX3" target="_blank" rel="noopener">Amazon</a></td><td>&mdash;</td></tr>
+            <tr><td class="k">FM</td><td>Si4713 transmitter</td><td><a href="https://www.amazon.com/Adafruit-Stereo-Transmitter-RBDS-Breakout/dp/B00SK8ME4Y" target="_blank" rel="noopener">Amazon</a></td><td><a href="https://github.com/geo-tp/ESP32-Bit-Pirate/wiki/22-FM" target="_blank" rel="noopener">22-FM</a></td></tr>
+          </table>
+        </div>
+
+        <h3>SPI bus &mdash; MOSI 13 / MISO 11 / SCLK 12, separate CS each</h3>
+        <div class="table-wrap">
+          <table>
+            <tr><th>Mode</th><th>Hardware</th><th>Buy</th><th>Wiki</th></tr>
+            <tr><td class="k">SPI</td><td>CH341A + SOIC8 test clip kit (in-circuit flash dumping)</td><td><a href="https://www.amazon.com/D-FLIFE-CH341A-Programmer-Adapter-Converter/dp/B07YFPJQ5W" target="_blank" rel="noopener">Amazon</a></td><td><a href="https://github.com/geo-tp/ESP32-Bit-Pirate/wiki/06-SPI" target="_blank" rel="noopener">06-SPI</a></td></tr>
+            <tr><td class="k">CAN</td><td>MCP2515 module (onboard TJA1050 transceiver)</td><td><a href="https://www.amazon.com/MCP2515-Module-TJA1050-Receiver-Arduino/dp/B0D4R65Z8T" target="_blank" rel="noopener">Amazon</a></td><td><a href="https://github.com/geo-tp/ESP32-Bit-Pirate/wiki/17-CAN" target="_blank" rel="noopener">17-CAN</a></td></tr>
+            <tr><td class="k">ETHERNET</td><td>W5500 module</td><td><a href="https://www.amazon.com/W5500-Ethernet-Indicator-Interface-WIZ820io/dp/B0BKZ5DX2K" target="_blank" rel="noopener">Amazon</a></td><td><a href="https://github.com/geo-tp/ESP32-Bit-Pirate/wiki/18-ETHERNET" target="_blank" rel="noopener">18-ETHERNET</a></td></tr>
+            <tr><td class="k">SUBGHZ</td><td>CC1101 + SMA antenna &mdash; pick the band for your region (315/433/868/915MHz)</td><td><a href="https://www.amazon.com/CC1101-Wireless-Module-Antenna-Transceiver/dp/B0D2TMTV5Z" target="_blank" rel="noopener">Amazon</a></td><td><a href="https://github.com/geo-tp/ESP32-Bit-Pirate/wiki/19-SUBGHZ" target="_blank" rel="noopener">19-SUBGHZ</a></td></tr>
+            <tr><td class="k">RF24</td><td>nRF24L01+ with onboard voltage regulator (these are power-flaky without one)</td><td><a href="https://www.amazon.com/NRF24L01-Wireless-Transceiver-Breakout-Regulator/dp/B0GTLMNPT6" target="_blank" rel="noopener">Amazon</a></td><td><a href="https://github.com/geo-tp/ESP32-Bit-Pirate/wiki/21-RF24" target="_blank" rel="noopener">21-RF24</a></td></tr>
+            <tr><td class="k">LORA</td><td><strong>SX1262 specifically</strong> (not SX1276/RFM95) &mdash; EBYTE E22-900M30S shown, 868/915MHz</td><td><a href="https://www.amazon.com/clp/B0HNSS9SYW" target="_blank" rel="noopener">Amazon</a></td><td><a href="https://github.com/geo-tp/ESP32-Bit-Pirate/wiki/24-LORA" target="_blank" rel="noopener">24-LORA</a></td></tr>
+          </table>
+        </div>
+
+        <h3>UART &mdash; RX 17 / TX 18</h3>
+        <div class="table-wrap">
+          <table>
+            <tr><th>Mode</th><th>Hardware</th><th>Buy</th><th>Wiki</th></tr>
+            <tr><td class="k">CELL</td><td>Any SIMCom AT modem &mdash; SIM800L shown (2G only; check local coverage, many carriers have sunset 2G) + SIM card + antenna</td><td><a href="https://www.amazon.com/HiLetgo-Smallest-Breakout-Quad-band-3-7-4-2V/dp/B01DLIJM2E" target="_blank" rel="noopener">Amazon</a></td><td><a href="https://github.com/geo-tp/ESP32-Bit-Pirate/wiki/23-CELL" target="_blank" rel="noopener">23-CELL</a></td></tr>
+            <tr><td class="k">EXPANDER</td><td>A <em>second board</em> &mdash; ESP32-C6, &ge;4MB flash &mdash; running the separate <a href="https://github.com/geo-tp/ESP32-Bus-Expander" target="_blank" rel="noopener">ESP32-Bus-Expander</a> firmware. Adds 5GHz Wi-Fi + Zigbee the main chip doesn't have.</td><td><a href="https://www.amazon.com/Espressif-ESP32-C6-DevKitM-1-N4-Development-Board/dp/B0BRQGL9S1" target="_blank" rel="noopener">Amazon</a></td><td><a href="https://github.com/geo-tp/ESP32-Bit-Pirate/wiki/25-EXPANDER" target="_blank" rel="noopener">25-EXPANDER</a></td></tr>
+          </table>
+        </div>
+
+        <h3>Standalone interfaces</h3>
+        <div class="table-wrap">
+          <table>
+            <tr><th>Mode</th><th>Hardware</th><th>Buy</th><th>Wiki</th></tr>
+            <tr><td class="k">1WIRE</td><td>DS18B20 temp sensor</td><td><a href="https://www.amazon.com/Gikfun-DS18B20-Temperature-Waterproof-EK1083x3/dp/B012C597T0" target="_blank" rel="noopener">Amazon</a></td><td><a href="https://github.com/geo-tp/ESP32-Bit-Pirate/wiki/02-1WIRE" target="_blank" rel="noopener">02-1WIRE</a></td></tr>
+            <tr><td class="k">2WIRE</td><td>Blank SLE4442 cards &mdash; clip test leads straight onto the gold contact pads, no reader IC needed</td><td><a href="https://www.amazon.com/Gialer-Intelligent-Contact-Access-Control/dp/B09BVMZC97" target="_blank" rel="noopener">Amazon</a></td><td><a href="https://github.com/geo-tp/ESP32-Bit-Pirate/wiki/07-2WIRE" target="_blank" rel="noopener">07-2WIRE</a></td></tr>
+            <tr><td class="k">3WIRE</td><td>93C46 DIP-8 Microwire EEPROM (the 93CX6 family, not a smart card &mdash; different from 2WIRE)</td><td><a href="https://www.amazon.com/10pcs-AT93C46-93C46-DIP-8-EEPROM/dp/B0DRFYDPM2" target="_blank" rel="noopener">Amazon</a></td><td><a href="https://github.com/geo-tp/ESP32-Bit-Pirate/wiki/08-3WIRE" target="_blank" rel="noopener">08-3WIRE</a></td></tr>
+            <tr><td class="k">I2S (out)</td><td>PCM5102 DAC module + small speaker</td><td><a href="https://www.amazon.com/PCM5102-PCM5102A-Decoder-Board-Module/dp/B0DCNRBXM9" target="_blank" rel="noopener">Amazon</a></td><td><a href="https://github.com/geo-tp/ESP32-Bit-Pirate/wiki/16-I2S" target="_blank" rel="noopener">16-I2S</a></td></tr>
+            <tr><td class="k">I2S (in)</td><td>INMP441 mic module</td><td><a href="https://www.amazon.com/INMP441-Omnidirectional-Microphone-Interface-Precision/dp/B09BB1F4C8" target="_blank" rel="noopener">Amazon</a></td><td><a href="https://github.com/geo-tp/ESP32-Bit-Pirate/wiki/16-I2S" target="_blank" rel="noopener">16-I2S</a></td></tr>
+            <tr><td class="k">INFRARED</td><td>TSOP38238 receiver + TSAL6200 emitter (TX pin 4 needs a ~150-220&Omega; series resistor)</td><td><a href="https://www.amazon.com/TSOP38238-TSAL6200-Infrared-Receiver-Modules/dp/B0HC79DZNL" target="_blank" rel="noopener">Amazon</a></td><td><a href="https://github.com/geo-tp/ESP32-Bit-Pirate/wiki/11-INFRARED" target="_blank" rel="noopener">11-INFRARED</a></td></tr>
+            <tr><td class="k">LED (strip)</td><td>WS2812B strip (data 15) &mdash; FastLED supports ~50 chipsets total, WS2812/APA102/SK6812 shown</td><td><a href="https://www.amazon.com/WS2812B-ALITOVE-Addressable-Programmable-Raspberry/dp/B07RBVKLPX" target="_blank" rel="noopener">Amazon</a></td><td><a href="https://github.com/geo-tp/ESP32-Bit-Pirate/wiki/10-LED" target="_blank" rel="noopener">10-LED</a></td></tr>
+            <tr><td class="k">DIO (<code>servo</code>)</td><td>SG90 micro servo</td><td><a href="https://www.amazon.com/Micro-Helicopter-Airplane-Remote-Control/dp/B072V529YD" target="_blank" rel="noopener">Amazon</a></td><td><a href="https://github.com/geo-tp/ESP32-Bit-Pirate/wiki/09-DIO" target="_blank" rel="noopener">09-DIO</a></td></tr>
+            <tr><td class="k">JTAG</td><td>Any SWD/JTAG target &mdash; Raspberry Pi Pico is a cheap practice board</td><td><a href="https://www.amazon.com/Raspberry-Pre-Soldered-Microcontroller-Development-Dual-Core/dp/B08X7HN2VG" target="_blank" rel="noopener">Amazon</a></td><td><a href="https://github.com/geo-tp/ESP32-Bit-Pirate/wiki/15-JTAG" target="_blank" rel="noopener">15-JTAG</a></td></tr>
+            <tr><td class="k">USB (<code>host</code>)</td><td>USB-C to USB-A OTG adapter, to plug a flash drive/keyboard into the Bit Pirate's port</td><td><a href="https://www.amazon.com/UGREEN-Adapter-Connector-Compatible-MacBook/dp/B072V9CNTK" target="_blank" rel="noopener">Amazon</a></td><td><a href="https://github.com/geo-tp/ESP32-Bit-Pirate/wiki/12-USB" target="_blank" rel="noopener">12-USB</a></td></tr>
+          </table>
+        </div>
+
+        <h3>Didn't find a clean link for</h3>
+        <p class="muted">A dedicated full-size ISO7816 socket for the 2WIRE card &mdash; search kept surfacing SIM-sized sockets, wrong form factor. Clip leads directly on the card's contact pads instead, rather than force a mediocre match.</p>
+
+        <h3>Cheapest path to the most modes covered</h3>
+        <p>nRF24L01 (~$1-2) + MCP2515 (~$3) + a generic I2C breakout you probably already own + the SOIC8 clip kit (~$5) covers four modes for under $15. CC1101 / SX1262 / W5500 / PN532 / Si4713 run ~$5-15 each. CELL is the one real investment (~$10-20 modem + SIM + antenna, plus the 2G-coverage caveat above).</p>
+      </div>
+    </section>
+
     <!-- ============================= RECOVERY ============================= -->
     <section class="view" id="view-recovery">
       <div class="page">
@@ -849,7 +924,7 @@ closed</pre>
 (function () {
   "use strict";
 
-  var VIEWS = ["overview","architecture","quickstart","cli","api","mcp","webapp","safety","modes","recovery","verified"];
+  var VIEWS = ["overview","architecture","quickstart","cli","api","mcp","webapp","safety","modes","hardware","recovery","verified"];
   var sidebar = document.getElementById("sidebar");
   var scrim = document.getElementById("scrim");
   var menuBtn = document.getElementById("menuBtn");
