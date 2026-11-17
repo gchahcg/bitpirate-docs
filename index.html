@@ -787,6 +787,35 @@ closed</pre>
           <p>SUBGHZ, LORA, FM, and CELL all key up an actual radio. The firmware's own LoRa wiki page: <em>"RF transmission may be regulated depending on frequency, power and local legislation."</em> Same logic applies to the other three &mdash; check your region's rules, same spirit as this project's authorized-use note.</p>
         </div>
 
+        <h3>Board-specific gotchas (Lonely Binary Gold Edition + PinPulse Shield)</h3>
+        <p class="muted">The tables below give GPIO numbers; these are specific to <em>this exact board</em> and where those numbers actually land on it &mdash; drawn from a companion project's hardware research on the same board (<a href="https://github.com/gchahcg/electronics_bench" target="_blank" rel="noopener">electronics_bench</a>'s <code>docs/bitpirate-notes.md</code>), cross-referenced against the vendor's own net-list pages, not just assumed.</p>
+
+        <div class="callout danger">
+          <span class="callout-label">Don't wire anything to these 12 pins</span>
+          <p><code>0, 3, 19, 20, 22&ndash;37, 43, 44, 45, 46, 48</code> &mdash; strapping pins sampled at boot (0, 3, 45, 46), native USB (19, 20), the octal PSRAM "trap" (35&ndash;37, pads are on the header), the serial bridge (43, 44), and the onboard RGB LED (48). A board that flashes fine but won't boot on its own power is almost always one of 0/3/45/46 held at the wrong level at power-up.</p>
+        </div>
+
+        <div class="table-wrap">
+          <table>
+            <tr><th>Where the defaults physically are</th><th></th></tr>
+            <tr><td class="k">Left edge (display end)</td><td><code>3V3, 3V3, RST, 4, 5, 6, 7, 15, 16, 17, 18, 8, 3, 46, 9, 10, 11, 12, 13, 14, 5V, GND</code></td></tr>
+            <tr><td class="k">Right edge</td><td><code>GND, 43, 44, 1, 2, 42, 41, 40, 39, 38, 37, 36, 35, 0, 45, 48, 47, 21, 20, 19, GND, GND</code></td></tr>
+          </table>
+        </div>
+        <p class="muted">Every default pin in the tables below (UART 17/18, I2C 6/7, SPI 10&ndash;13, IR 4/5) is on the left edge. The shield passes every pin through hole for hole &mdash; a male pin and a female socket on the outer edge carry the same net, so no soldering is needed to wire a module in.</p>
+
+        <div class="callout warn">
+          <span class="callout-label">The board's printed marks don't match the firmware's defaults</span>
+          <p>Silkscreen/Arduino convention: I2C SDA 8 / SCL 9, SPI MOSI 11 / MISO 13. Bit Pirate's actual defaults: I2C SDA 6 / SCL 7, SPI MOSI 13 / MISO 11 (swapped relative to the marks). Both work electrically &mdash; the firmware sets every pin explicitly via each mode's <code>config</code> &mdash; but wiring to the <em>printed</em> label instead of the firmware's actual default pin is the mistake to watch for.</p>
+        </div>
+
+        <h4>Two diagnostics worth knowing before you assume something's broken</h4>
+        <ul>
+          <li><strong>A floating pin flickers.</strong> The shield's LEDs have no pull-ups &mdash; each GPIO feeds a 74HC04 inverter input (~1&micro;A), so a pin nothing is driving visibly flickers or glows when a hand comes near. That's the floating input, not a fault.</li>
+          <li><strong>UART leaves an internal pull-up on RX</strong> that the DIO pin table doesn't show &mdash; a shield LED can stay lit after you leave UART mode. A <code>hiz</code> / explicit pin reset clears it.</li>
+        </ul>
+        <p class="muted">Power budget: the 3V3 rail is an AMS1117 shared with the module, the USB bridge, and (on the shield) all 36 LEDs &mdash; roughly 500mA left for your own parts. Worth keeping in mind for the LED strip and cellular modem below, both of which can pull real current; a separate 3.3V/5V supply for those is the safer default.</p>
+
         <h3>I2C bus &mdash; SDA 6 / SCL 7</h3>
         <div class="table-wrap">
           <table>
